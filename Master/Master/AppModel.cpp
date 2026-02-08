@@ -5,7 +5,7 @@ AppModel::AppModel(QObject* parent) :
     QObject(parent) 
 {
     m_folder = QDir::currentPath() + "/outputs";
-    m_slaveScriptName = "main.py";
+    m_slaveScriptName = "slave.py";
     
     connect(&m_processScanTimer, &QTimer::timeout, this, &AppModel::scanSlaveProcess);
 
@@ -80,7 +80,7 @@ void AppModel::scanSlaveProcess()
 {
 #ifdef Q_OS_WIN
 
-    if (m_scanProcess) // éviter scans simultanés
+    if (m_scanProcess) // Ã©viter scans simultanÃ©s
         return;
 
     m_scanProcess = new QProcess(this);

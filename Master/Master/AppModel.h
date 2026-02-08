@@ -55,7 +55,7 @@ public:
     int endValue() const { return m_end; }
 
 public slots:
-    // setters (utilisés par le controller)
+    // setters (utilisÃ©s par le controller)
 
     void setFolder(const QString& folder);
     void setRange(int start, int end);

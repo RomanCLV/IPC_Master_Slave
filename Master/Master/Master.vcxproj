@@ -106,6 +106,9 @@
   <ItemGroup>
     <QtMoc Include="AppController.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SharedData.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
     <Import Project="$(QtMsBuild)\qt.targets" />

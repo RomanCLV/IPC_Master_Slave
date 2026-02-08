@@ -4,6 +4,15 @@
 #include <QString>
 #include <QTimer>
 #include <QProcess>
+#include "SharedData.h"
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
+#ifndef IPC_NAME
+#define IPC_NAME "ipc_masterslave_shm"
+#endif
 
 class AppModel : public QObject
 {
@@ -36,6 +45,7 @@ public:
 
 public:
     explicit AppModel(QObject* parent = nullptr);
+    ~AppModel() override;
 
     // getters
     QString scriptName() const { return m_slaveScriptName; }
@@ -66,17 +76,20 @@ private:
     void setElapsedMaster(quint64 ms);
     void setElapsedSlave(quint64 ms);
 
-private slots:
     void setSlaveFound(bool found);
     void setSlavePid(int pid);
     void setSlaveState(SlaveState state);
-
-    void scanSlaveProcess();
 
     void setStatusCode(int code);
     void setSumResult(int result);
     void setFileContent(const QString& content);
 
+    bool createSharedMemory();
+    SharedData* lockSharedMemory();
+    void unlockSharedMemory();
+
+private slots:
+    void scanSlaveProcess();
     void onScanProcessFinished(int exitCode, QProcess::ExitStatus status);
 
 signals:
@@ -86,12 +99,12 @@ signals:
     void outputsChanged();
 
 private:
-    
     bool m_slaveFound = false;
     int m_slavePid = -1;
 
     int m_start = 0;
     int m_end = 100;
+    int m_requestCounter = 0;
 
     int m_statusCode = 0;
     int m_sumResult = 0;
@@ -107,4 +120,9 @@ private:
     QString m_folder;
 
     QProcess* m_scanProcess{ nullptr };
+
+#ifdef Q_OS_WIN
+    HANDLE m_hMapFile = nullptr;
+    LPVOID m_pBuf = nullptr;
+#endif
 };

@@ -19,7 +19,7 @@ signals:
     void scriptNameChanged(const QString& scriptName);
 
 public slots:
-    void updateProcessInfo(const QString& scriptName, bool found, int pid, const QString& state);
+    void updateProcessInfo(const QString& scriptName, bool found, int pid, const QString& masterState, const QString& slaveState);
     void updateTelemetry(qint64 masterMs, qint64 slaveMs);
     void updateOutputs(int statusCode, int sumResult, const QString& fileContent);
     void updateInputs(const QString& folder, int start, int end);

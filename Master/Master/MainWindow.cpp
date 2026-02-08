@@ -46,13 +46,14 @@ void MainWindow::updateStartButtonState()
     ui.startPushButton->setEnabled(valid);
 }
 
-void MainWindow::updateProcessInfo(const QString& scriptName, bool found, int pid, const QString& state)
+void MainWindow::updateProcessInfo(const QString& scriptName, bool found, int pid, const QString& masterState, const QString& slaveState)
 {
     m_slaveProcessFound = found;
     ui.scriptNameLineEdit->setText(scriptName);
     ui.slaveProcessLabel->setText(found ? "Found" : "Not found");
     ui.slaveProcessIdLabel->setText(QString::number(pid));
-    ui.slaveStateLabel->setText(state);
+    ui.masterStateLabel->setText(masterState);
+    ui.slaveStateLabel->setText(slaveState);
  
     updateStartButtonState();
 }

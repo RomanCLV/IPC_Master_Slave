@@ -31,7 +31,8 @@ void AppController::refreshProcessInfo()
         m_model->scriptName(),
         m_model->slaveFound(),
         m_model->slavePid(),
-        AppModel::stateToString(m_model->slaveState())
+        AppModel::masterStateToString(m_model->masterState()),
+        AppModel::slaveStateToString(m_model->slaveState())
     );
 }
 

@@ -1,10 +1,13 @@
 #pragma once
 
+#include "SharedData.h"
+
 #include <QObject>
 #include <QString>
 #include <QTimer>
 #include <QProcess>
-#include "SharedData.h"
+#include <QThread>
+#include <QElapsedTimer>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -14,31 +17,51 @@
 #define IPC_NAME "ipc_masterslave_shm"
 #endif
 
+class WorkerThread;
+
 class AppModel : public QObject
 {
     Q_OBJECT
 
 public:
+    enum class MasterState
+    {
+        Idle,
+        Starting,
+        WaitingForSlave,
+        Finished
+    };
+
     enum class SlaveState
     {
         NotRunning,
         Idle,
-        Started,
-        WaitingForSlave,
         Processing,
-        Finished
+        FinishedSuccess,
+        FinishedError
     };
 
-    static QString stateToString(SlaveState state) 
+    static QString masterStateToString(MasterState state)
     {
         switch (state)
         {
-        case SlaveState::NotRunning:      return "Not running";
+        case MasterState::Idle:            return "Idle";
+        case MasterState::Starting:        return "Starting";
+        case MasterState::WaitingForSlave: return "Waiting for slave";
+        case MasterState::Finished:        return "Finished";
+        }
+        return "Unknown";
+    }
+
+    static QString slaveStateToString(SlaveState state)
+    {
+        switch (state)
+        {
+        case SlaveState::NotRunning:      return "NotRunning";
         case SlaveState::Idle:            return "Idle";
-        case SlaveState::Started:         return "Started";
-        case SlaveState::WaitingForSlave: return "Waiting for slave";
         case SlaveState::Processing:      return "Processing";
-        case SlaveState::Finished:        return "Finished";
+        case SlaveState::FinishedSuccess: return "Finished (Success)";
+        case SlaveState::FinishedError:   return "Finished (Error)";
         }
         return "Unknown";
     }
@@ -51,6 +74,8 @@ public:
     QString scriptName() const { return m_slaveScriptName; }
     bool slaveFound() const { return m_slaveFound; }
     int slavePid() const { return m_slavePid; }
+
+    MasterState masterState() const { return m_masterState; }
     SlaveState slaveState() const { return m_slaveState; }
 
     int statusCode() const { return m_statusCode; }
@@ -79,6 +104,7 @@ private:
     void setSlaveFound(bool found);
     void setSlavePid(int pid);
     void setSlaveState(SlaveState state);
+    void setMasterState(MasterState state);
 
     void setStatusCode(int code);
     void setSumResult(int result);
@@ -87,10 +113,13 @@ private:
     bool createSharedMemory();
     SharedData* lockSharedMemory();
     void unlockSharedMemory();
+    bool tryExractSlaveElapsedFromFile(quint64& elapsedOut);
 
 private slots:
     void scanSlaveProcess();
     void onScanProcessFinished(int exitCode, QProcess::ExitStatus status);
+    void onWorkerFinished(int errorCode, quint32 responseCounter, int result, const QString& filename, quint64 masterElapsed);
+    void onWorkerSlaveStateChanged(SlaveState state);
 
 signals:
     void processInfoChanged();
@@ -104,6 +133,7 @@ private:
 
     int m_start = 0;
     int m_end = 100;
+
     int m_requestCounter = 0;
 
     int m_statusCode = 0;
@@ -114,15 +144,42 @@ private:
 
     QTimer m_processScanTimer;
 
+    MasterState m_masterState = MasterState::Idle;
     SlaveState m_slaveState = SlaveState::NotRunning;
+
     QString m_slaveScriptName;
     QString m_fileContent;
     QString m_folder;
 
     QProcess* m_scanProcess{ nullptr };
+    WorkerThread* m_workerThread{ nullptr };
 
 #ifdef Q_OS_WIN
     HANDLE m_hMapFile = nullptr;
     LPVOID m_pBuf = nullptr;
 #endif
+};
+
+// Thread de travail pour ne pas bloquer l'UI
+class WorkerThread : public QThread
+{
+    Q_OBJECT
+
+public:
+    WorkerThread(LPVOID sharedMemPtr, int start, int end,
+        const QString& folder, uint32_t requestCounter, QObject* parent = nullptr);
+
+protected:
+    void run() override;
+
+signals:
+    void finished(int errorCode, uint32_t responseCounter, int result, const QString& filename, quint64 masterElapsed);
+    void slaveStateChanged(AppModel::SlaveState state);
+
+private:
+    LPVOID m_pSharedMem;
+    int m_start;
+    int m_end;
+    QString m_folder;
+    uint32_t m_requestCounter;
 };
